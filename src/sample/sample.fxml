@@ -3,7 +3,7 @@
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 
-<VBox fx:controller="client.Controller" xmlns:fx="http://javafx.com/fxml" alignment="center">
+<VBox fx:controller="sample.Controller"  xmlns:fx="http://javafx.com/fxml" alignment="center">
     <TextArea fx:id="messageList" VBox.vgrow="ALWAYS" editable="false"/>
     <TextField fx:id="newMessageField" maxHeight="1" onAction="#addNewMessage" onKeyReleased="#changeText"/>
     <Button fx:id="okButton" text="Отправить" disable="true" onAction="#addNewMessage"/>
