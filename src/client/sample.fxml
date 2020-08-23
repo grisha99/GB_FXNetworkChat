@@ -5,7 +5,7 @@
 <?import javafx.scene.effect.*?>
 <?import javafx.scene.layout.*?>
 
-<VBox alignment="center" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/10.0.2-internal" fx:controller="client.ControllerImpl">
+<VBox alignment="center" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.ControllerImpl">
     <TextArea fx:id="messageList" editable="false" focusTraversable="false" wrapText="true" VBox.vgrow="ALWAYS">
       <opaqueInsets>
          <Insets />

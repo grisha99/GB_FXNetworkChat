@@ -23,14 +23,13 @@ public class ControllerImpl implements Controller {
     private ClientService cService;
 
     public ControllerImpl() {
+
         cService = new ClientService(this);
     }
-
 
     public void addNewMessage(ActionEvent actionEvent) {
         String newText = newMessageField.getText().trim();
         if (!newText.equals("")) {                          // отправляем сообщение, если текст сообщения не пустой
-//            messageList.appendText(newText + "\n");
             sendMsgToServer(newText);
             newMessageField.clear();
             newMessageField.requestFocus();
@@ -54,5 +53,4 @@ public class ControllerImpl implements Controller {
 
         cService.sendMsg(msg);
     }
-
 }

@@ -1,6 +1,6 @@
 package server.service;
 
-import com.sun.xml.internal.ws.api.model.wsdl.WSDLOutput;
+import server.except.ServerErrorException;
 import server.handler.ClientHandler;
 import server.interf.AuthService;
 import server.interf.Server;
@@ -31,6 +31,8 @@ public class ServerImpl implements Server {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (ServerErrorException see) {
+            System.out.println(see.getMessage());
         } finally {
             if (authService != null) {
                 authService.stop();
@@ -40,13 +42,11 @@ public class ServerImpl implements Server {
 
     @Override
     public synchronized boolean isNickBusy(String nick) {
-
         for(ClientHandler c : clients) {
             if(c.getNick().equals(nick)) {
                 return true;
             }
         }
-
         return false;
     }
 
@@ -55,16 +55,25 @@ public class ServerImpl implements Server {
         for(ClientHandler c : clients) {
             c.sendMessage(msg);
         }
-
     }
 
     @Override
-    public boolean sendPrivateMag(String msg, ClientHandler toClient, ClientHandler fromClient) {
+    public void broadcastClientsList() {
+        StringBuilder clientsListMsg = new StringBuilder("/clients ");
+        for(ClientHandler ch : clients) {
+            clientsListMsg.append(ch.getNick() + " ");
+        }
+        broadcastMsg(clientsListMsg.toString());
+    }
+
+    @Override
+    public boolean sendPrivateMag(String msg, String toNick, ClientHandler fromClient) {
+        ClientHandler toClient = getClientHandlerByNick(toNick);
         if (toClient != null) {
             toClient.sendMessage("ВАМ от " + fromClient.getNick() + ": " + msg);
             return true;
         } else {
-            fromClient.sendMessage("Пользователь с таким ником не в сети.");
+            fromClient.sendMessage("Пользователь с ником \"" + toNick + "\" не в сети.");
             return false;
         }
     }
@@ -72,11 +81,13 @@ public class ServerImpl implements Server {
     @Override
     public synchronized void subscribe(ClientHandler client) {
         clients.add(client);
+        broadcastClientsList();
     }
 
     @Override
     public synchronized void unSubscribe(ClientHandler client) {
         clients.remove(client);
+        broadcastClientsList();
     }
 
     @Override
