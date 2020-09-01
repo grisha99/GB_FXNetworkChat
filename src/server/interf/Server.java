@@ -6,11 +6,15 @@ public interface Server {
 
     int PORT = 55555;
 
+    int AUTH_TIME_OUT = 120000; // миллисекунды, таймаут авторизации
+
     boolean isNickBusy(String nick);
 
     void broadcastMsg(String msg);
 
-    boolean sendPrivateMag(String msg, ClientHandler toClient, ClientHandler fromClient);
+    void broadcastClientsList();
+
+    boolean sendPrivateMag(String msg, String toClient, ClientHandler fromClient);
 
     void subscribe(ClientHandler client);
 
