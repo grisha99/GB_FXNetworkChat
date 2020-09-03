@@ -1,13 +1,16 @@
 package server.service;
 
 import server.interf.AuthService;
+import server.interf.UserDAO;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
 public class AuthServiceImpl implements AuthService {
 
-    private class UserEntity {
+    public class UserEntity {
         private String login;
         private String pass;
         private String nick;
@@ -19,15 +22,35 @@ public class AuthServiceImpl implements AuthService {
 
 
         }
+
+        public UserEntity(ResultSet rs) {
+            try {
+                if (rs != null && rs.getRow() > 0 ) {
+                    this.login = rs.getString("login");
+                    this.pass = rs.getString("pass");
+                    this.nick = rs.getString("nick");
+                }
+            } catch (SQLException throwables) {
+                System.out.println("Ошибка доступа к данным пользователя");
+                throwables.printStackTrace();
+            }
+
+        }
     }
 
     private List<UserEntity> users;
 
-    public AuthServiceImpl() {
+    public AuthServiceImpl(UserDAO userDAO) {
         users = new LinkedList<>();
-        users.add(new UserEntity("login1", "111", "Mikhail"));
-        users.add(new UserEntity("login2", "222", "Nikolay"));
-        users.add(new UserEntity("login3", "333", "Konstantin"));
+
+        ResultSet rs = userDAO.getUserSet();
+        try {
+            while (rs.next()) {
+                users.add(new UserEntity(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

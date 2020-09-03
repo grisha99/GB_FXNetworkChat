@@ -23,4 +23,6 @@ public interface Server {
     AuthService getAuthService();
 
     ClientHandler getClientHandlerByNick(String nick);
+
+    boolean changeNick(ClientHandler sender, String newNick);
 }

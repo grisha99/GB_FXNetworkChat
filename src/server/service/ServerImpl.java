@@ -4,6 +4,7 @@ import server.except.ServerErrorException;
 import server.handler.ClientHandler;
 import server.interf.AuthService;
 import server.interf.Server;
+import server.interf.UserDAO;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -15,11 +16,13 @@ public class ServerImpl implements Server {
 
     private List<ClientHandler> clients;
     private AuthService authService;
+    private UserDAO userDAO;
 
     public ServerImpl() {
         try {
             ServerSocket serverSocket = new ServerSocket(PORT);
-            authService = new AuthServiceImpl();
+            userDAO = new UserDAOImpl();
+            authService = new AuthServiceImpl(userDAO);
             authService.start();;
             clients = new LinkedList<>();
             while (true) {
@@ -58,7 +61,7 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public void broadcastClientsList() {
+    public synchronized void broadcastClientsList() {
         StringBuilder clientsListMsg = new StringBuilder("/clients ");
         for(ClientHandler ch : clients) {
             clientsListMsg.append(ch.getNick() + " ");
@@ -67,7 +70,7 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public boolean sendPrivateMag(String msg, String toNick, ClientHandler fromClient) {
+    public synchronized boolean sendPrivateMag(String msg, String toNick, ClientHandler fromClient) {
         ClientHandler toClient = getClientHandlerByNick(toNick);
         if (toClient != null) {
             toClient.sendMessage("ВАМ от " + fromClient.getNick() + ": " + msg);
@@ -103,5 +106,16 @@ public class ServerImpl implements Server {
             }
         }
         return null;
+    }
+
+    @Override
+    public synchronized boolean changeNick(ClientHandler sender, String newNick) {
+        if (userDAO.changeUserNick(sender.getNick(), newNick)) {
+            broadcastMsg("Ник изменен: " + sender.getNick() + " -> " + newNick);
+            return true;
+        } else {
+            sender.sendMessage("Пользователь с ником \"" + newNick + "\" уже существует.");
+            return false;
+        }
     }
 }
