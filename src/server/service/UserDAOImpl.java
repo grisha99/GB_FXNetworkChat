@@ -11,14 +11,28 @@ public class UserDAOImpl implements UserDAO {
     private PreparedStatement ps;
 
     @Override
-    public ResultSet getUserSet() {
+    public String getUserNick(String login, String pass) {
+
+        ResultSet rs;
         try {
-            ps = DBConnect.getInstance().getConnection().prepareStatement("SELECT * FROM users");
-            return ps.executeQuery();
+            ps = DBConnect.getInstance().getConnection()
+                    .prepareStatement("SELECT nick FROM `netchat`.`users` WHERE (`login` = ? and `pass` = ?);");
+            ps.setString(1, login);
+            ps.setString(2, pass);
+            rs = ps.executeQuery();
         } catch (SQLException throwables) {
             throwables.printStackTrace();
+            return null;
         }
+        try {
+            if (rs.next()) {
+                return rs.getString("nick");
+            }
 
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
         return null;
     }
 

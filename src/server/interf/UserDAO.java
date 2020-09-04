@@ -1,12 +1,8 @@
 package server.interf;
 
-import server.service.AuthServiceImpl;
-
-import java.sql.ResultSet;
-
 public interface UserDAO {
 
-    ResultSet getUserSet();
+    String getUserNick(String login, String pass);
 
     boolean changeUserNick(String oldNick, String newNick);
 
