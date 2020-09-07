@@ -106,6 +106,13 @@ public class ClientHandler {
                         sendMessage("Личное СМС для " + toNick + ": " + msg);
                     }
                 }
+                if (strFromClient.startsWith("/cnick")) {   // смена ника
+                    String newNick = strFromClient.split("\\s")[1];
+                    if (server.changeNick(this, newNick)) {
+                        nick = newNick;
+                        server.broadcastClientsList();
+                    }
+                }
                 continue;       // команды отработаны
             }
             server.broadcastMsg(nick + ": " + strFromClient);
@@ -130,4 +137,5 @@ public class ClientHandler {
     public String getNick() {
         return nick;
     }
+
 }
