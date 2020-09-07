@@ -64,7 +64,7 @@ public class ClientHandler {
                 String nick = server.getAuthService().getNick(clientData[1], clientData[2]); // проверка логина пароля
                 if (nick != null) {
                     if (!server.isNickBusy(nick)) {     // занят ли ник
-                        sendMessage( "/authOK " + nick);
+                        sendMessage( "/authOK " + nick + " " + clientData[1]);
                         this.nick = nick;
                         server.broadcastMsg( this.nick + " вошел в чат");
                         server.subscribe(this);
