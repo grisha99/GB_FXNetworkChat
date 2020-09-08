@@ -2,6 +2,7 @@ package client.service;
 
 
 import client.interf.Controller;
+import client.interf.HistoryDAO;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -15,9 +16,11 @@ public class ClientService {
 
     private DataInputStream dis;
     private DataOutputStream dos;
+    private HistoryDAO historyDAO;
     private Controller guiController;   // контроллер графиче кого интерфейса
 //
     private boolean isAuthorized;       // признак успешной авторизации
+    private boolean isServiceMsg;       // признак сервисного смс, не пишем в историю
 
     public ClientService(Controller guiController) {
         this.guiController = guiController;
@@ -40,8 +43,10 @@ public class ClientService {
                             String strFromServer = dis.readUTF();
                             if (strFromServer.startsWith("/authOK")) {      // если авторизация успешна
                                 String myNick = strFromServer.split("\\s")[1];
+                                String myLogin = strFromServer.split("\\s")[2]; //нужен логин для истории
                                 isAuthorized = true;
                                 guiController.sendMsgToGUI("Вы авторизованы под ником: " + myNick);
+                                historyDAO = new HistoryDAOImpl(myLogin);   // сервис истории
                                 break;
                             }
                             if (strFromServer.startsWith("/authTimeOut")) {     // от сервера получено смс о таймауте
@@ -52,7 +57,11 @@ public class ClientService {
                         }
 
                         if (isAuthorized) {     // авторизованы, слушаем сервер
+                            for (String msg : historyDAO.getMessageList()) {    // подгружаем историю чата
+                                guiController.sendMsgToGUI(msg);
+                            }
                             while (true) {
+                                isServiceMsg = false;
                                 String strFromServer = dis.readUTF();
                                 if (strFromServer.startsWith("/exit")) {    // команда на выход, была запрошена нами
                                     isAuthorized = false;
@@ -60,8 +69,12 @@ public class ClientService {
                                 }
                                 if (strFromServer.startsWith("/clients")) {     // рассылка списка клиентов
                                     strFromServer = strFromServer.replace("/clients", "В сети:");
+                                    isServiceMsg = true;
                                 }
                                 guiController.sendMsgToGUI(strFromServer);
+                                if (!isServiceMsg) {            // смс не сервисное, запись истории
+                                    historyDAO.addMessage(strFromServer);
+                                }
                             }
                         }
                     } catch (Exception e) {
