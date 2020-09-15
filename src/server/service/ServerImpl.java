@@ -11,6 +11,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ServerImpl implements Server {
 
@@ -29,8 +31,8 @@ public class ServerImpl implements Server {
                 System.out.println("Ожидание подключения");
                 Socket socket = serverSocket.accept();
                 System.out.println("Клиент подключен");
-                new ClientHandler(this, socket);
-
+                ExecutorService es = Executors.newCachedThreadPool();
+                es.execute(new ClientHandler(this, socket));
             }
         } catch (IOException e) {
             e.printStackTrace();
