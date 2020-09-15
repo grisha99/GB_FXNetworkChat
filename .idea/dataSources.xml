@@ -10,5 +10,10 @@
         <property name="serverTimezone" value="UTC" />
       </driver-properties>
     </data-source>
+    <data-source source="LOCAL" name="User Data Source -" uuid="1a5530a4-241e-40ed-8ce2-36dd93108635">
+      <synchronize>true</synchronize>
+      <configured-by-url>true</configured-by-url>
+      <jdbc-driver>java.sql.Driver</jdbc-driver>
+    </data-source>
   </component>
 </project>

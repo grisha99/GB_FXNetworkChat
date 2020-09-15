@@ -8,7 +8,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
-public class ClientHandler {
+public class ClientHandler implements Runnable {
 
     private Server server;
 
@@ -27,32 +27,34 @@ public class ClientHandler {
             this.socket = socket;
             dis = new DataInputStream(socket.getInputStream());
             dos = new DataOutputStream(socket.getOutputStream());
-            new Thread( () -> {     // поток прослушивания смс от клинта
-                try {
-                    isAuthOK = false;
-                    Thread authThread = new Thread(() -> {  // отдельный поток для авторизации
-                        try {
-                            authentication();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    });
-                    authThread.start();
-                    authThread.join(server.AUTH_TIME_OUT);         // таймаут авторизации
-                    if (isAuthOK) {                       // если авторизованы, сулшаем смс
-                        readMessage();
-                    } else {                                       // авторизация по таймауту не прошла
-                        sendMessage("Таймаут авторизации, вы отключены.");
-                        sendMessage("/authTimeOut");          // смс клиенту об этом
-                    }
-                } catch (IOException | InterruptedException e) {
-                    e.printStackTrace();
-                } finally {
-                    closeConnection();
-                }
-            }).start();
         } catch (IOException e) {
             throw new ServerErrorException("Проблеммы на сервере");
+        }
+    }
+
+    @Override
+    public void run() {
+        try {
+            isAuthOK = false;
+            Thread authThread = new Thread(() -> {  // отдельный поток для авторизации
+                try {
+                    authentication();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+            authThread.start();
+            authThread.join(server.AUTH_TIME_OUT);         // таймаут авторизации
+            if (isAuthOK) {                       // если авторизованы, сулшаем смс
+                readMessage();
+            } else {                                       // авторизация по таймауту не прошла
+                sendMessage("Таймаут авторизации, вы отключены.");
+                sendMessage("/authTimeOut");          // смс клиенту об этом
+            }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            closeConnection();
         }
     }
 
@@ -137,5 +139,7 @@ public class ClientHandler {
     public String getNick() {
         return nick;
     }
+
+
 
 }
