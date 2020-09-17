@@ -51,6 +51,7 @@ public class ClientService {
                             }
                             if (strFromServer.startsWith("/authTimeOut")) {     // от сервера получено смс о таймауте
                                 isAuthorized = false;
+                                dos.writeUTF("/exitNoAuth");    // подтверждение отключения
                                 break;
                             }
                             guiController.sendMsgToGUI(strFromServer);

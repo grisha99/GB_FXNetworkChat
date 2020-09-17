@@ -1,5 +1,9 @@
 package server.service;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -11,6 +15,8 @@ public class DBConnect {
     private Connection connection;
 
     private static DBConnect dbConnectImpl;
+
+    private static final Logger LOGGER = LogManager.getLogger(DBConnect.class.getName());
 
     private DBConnect(){
         ResourceBundle rb = ResourceBundle.getBundle("dbCon");
@@ -26,9 +32,9 @@ public class DBConnect {
 
         try {
             connection = DriverManager.getConnection(jdbcURL, login, pass);
-        } catch (SQLException throwables) {
-            System.out.println("Ошибка соединения с БД!");
-            throwables.printStackTrace();
+            LOGGER.log(Level.INFO, "Успешное соединение БД: \"" + db + "\', сервер: " + host + ":" + port );
+        } catch (SQLException e) {
+            LOGGER.error("ОШИБКА соединения с БД: \"" + db + "\', сервер: " + host + ":" + port, e);
         }
     }
 
