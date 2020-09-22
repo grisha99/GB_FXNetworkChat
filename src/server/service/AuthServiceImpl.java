@@ -1,5 +1,8 @@
 package server.service;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import server.interf.AuthService;
 import server.interf.UserDAO;
 
@@ -11,6 +14,7 @@ import java.util.List;
 public class AuthServiceImpl implements AuthService {
 
     private UserDAO userDAO;
+    private static final Logger LOGGER = LogManager.getLogger(AuthServiceImpl.class.getName());
 
     public AuthServiceImpl(UserDAO userDAO) {
 
@@ -20,7 +24,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void start() {
 
-        System.out.println("Сервис авторизации запущен");
+        LOGGER.log(Level.INFO, "Сервер авторизации запущен");
     }
 
     @Override
@@ -31,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void stop() {
-        System.out.println("Сервис авторизации остановлен");
+
+        LOGGER.log(Level.INFO, "Сервис авторизации остановлен");
     }
 }

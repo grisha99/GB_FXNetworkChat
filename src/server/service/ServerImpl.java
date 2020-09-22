@@ -1,5 +1,8 @@
 package server.service;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import server.except.ServerErrorException;
 import server.handler.ClientHandler;
 import server.interf.AuthService;
@@ -14,11 +17,14 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+
 public class ServerImpl implements Server {
 
     private List<ClientHandler> clients;
     private AuthService authService;
     private UserDAO userDAO;
+    private static final Logger LOGGER = LogManager.getLogger(ServerImpl.class.getName());
+
 
     public ServerImpl() {
         try {
@@ -28,16 +34,16 @@ public class ServerImpl implements Server {
             authService.start();;
             clients = new LinkedList<>();
             while (true) {
-                System.out.println("Ожидание подключения");
+                LOGGER.log(Level.INFO, "Ожидание подключения");
                 Socket socket = serverSocket.accept();
-                System.out.println("Клиент подключен");
+                LOGGER.log(Level.INFO, "Клиент подключился");
                 ExecutorService es = Executors.newCachedThreadPool();
                 es.execute(new ClientHandler(this, socket));
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error("ErrorIO", e);
         } catch (ServerErrorException see) {
-            System.out.println(see.getMessage());
+            LOGGER.error("ErrorServer", see);
         } finally {
             if (authService != null) {
                 authService.stop();
@@ -87,12 +93,14 @@ public class ServerImpl implements Server {
     public synchronized void subscribe(ClientHandler client) {
         clients.add(client);
         broadcastClientsList();
+        LOGGER.log(Level.INFO, "Зарегистрирован клиент с ником: " + client.getNick());
     }
 
     @Override
     public synchronized void unSubscribe(ClientHandler client) {
         clients.remove(client);
         broadcastClientsList();
+        LOGGER.log(Level.INFO, "Клиент отключился, ник: " + client.getNick());
     }
 
     @Override
@@ -114,9 +122,11 @@ public class ServerImpl implements Server {
     public synchronized boolean changeNick(ClientHandler sender, String newNick) {
         if (userDAO.changeUserNick(sender.getNick(), newNick)) {
             broadcastMsg("Ник изменен: " + sender.getNick() + " -> " + newNick);
+            LOGGER.log(Level.INFO, "Клиент изменил Ник: " + sender.getNick() + " -> " + newNick);
             return true;
         } else {
             sender.sendMessage("Пользователь с ником \"" + newNick + "\" уже существует.");
+            LOGGER.log(Level.INFO, "Клиент не смог сменить Ник: " + sender.getNick() + " -> " + newNick + " (Ник занят)");
             return false;
         }
     }

@@ -1,5 +1,8 @@
 package server.handler;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import server.except.ServerErrorException;
 import server.interf.Server;
 
@@ -19,7 +22,10 @@ public class ClientHandler implements Runnable {
 
     private String nick;
 
-    private boolean isAuthOK;   // флаг успешной авторизации
+    private volatile boolean isAuthOK;          // флаг успешной авторизации
+    private volatile boolean exitWithoutAuth;   // флаг выхода без авторизации
+
+    public static final Logger LOGGER = LogManager.getLogger(ClientHandler.class.getName());
 
     public ClientHandler(Server server, Socket socket) throws ServerErrorException {
         try {
@@ -28,6 +34,7 @@ public class ClientHandler implements Runnable {
             dis = new DataInputStream(socket.getInputStream());
             dos = new DataOutputStream(socket.getOutputStream());
         } catch (IOException e) {
+            LOGGER.error("ErrorCHConstructor", e);
             throw new ServerErrorException("Проблеммы на сервере");
         }
     }
@@ -36,60 +43,87 @@ public class ClientHandler implements Runnable {
     public void run() {
         try {
             isAuthOK = false;
+            exitWithoutAuth = false;
             Thread authThread = new Thread(() -> {  // отдельный поток для авторизации
                 try {
                     authentication();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.error("ErrorCHAuth", e);
                 }
             });
+            authThread.setDaemon(true);
             authThread.start();
             authThread.join(server.AUTH_TIME_OUT);         // таймаут авторизации
             if (isAuthOK) {                       // если авторизованы, сулшаем смс
+                LOGGER.log(Level.INFO, "Клиент авторизован, ник: " + nick);
                 readMessage();
             } else {                                       // авторизация по таймауту не прошла
-                sendMessage("Таймаут авторизации, вы отключены.");
-                sendMessage("/authTimeOut");          // смс клиенту об этом
+                if (!exitWithoutAuth) {
+                    sendMessage("Таймаут авторизации, вы отключены.");
+                    sendMessage("/authTimeOut");          // смс клиенту об этом
+                    LOGGER.log(Level.INFO, "Таймаут авторизации, клиент отключен ");
+                }
+                if (authThread.isAlive()) {
+                    authThread.interrupt();
+                    authThread.join();
+                }
             }
         } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+            LOGGER.error("ErrorCH", e);
         } finally {
             closeConnection();
         }
     }
 
     private void authentication() throws IOException{
+        String authNick;
         while (true) {
-            String strFromClient = dis.readUTF().toLowerCase();
+            String strFromClient = dis.readUTF();
+            if (strFromClient.startsWith("/exitNoAuth") || strFromClient.startsWith("/exit")) {
+                isAuthOK = false;
+                exitWithoutAuth = true;
+                return;
+            }
             if (strFromClient.startsWith("/auth")) {                // команда на авторизацию
                 String [] clientData = strFromClient.split("\\s");
-                String nick = server.getAuthService().getNick(clientData[1], clientData[2]); // проверка логина пароля
-                if (nick != null) {
-                    if (!server.isNickBusy(nick)) {     // занят ли ник
-                        sendMessage( "/authOK " + nick + " " + clientData[1]);
-                        this.nick = nick;
+                try {
+                    authNick = server.getAuthService().getNick(clientData[1], clientData[2]); // проверка логина пароля
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    dos.writeUTF("Не указаны логин или пароль");
+                    LOGGER.log(Level.INFO, "Не указаны логин или пароль");
+                    continue;
+                }
+                if (authNick != null) {
+                    if (!server.isNickBusy(authNick)) {     // занят ли ник
+                        sendMessage( "/authOK " + authNick + " " + clientData[1]);
+                        this.nick = authNick;
                         server.broadcastMsg( this.nick + " вошел в чат");
                         server.subscribe(this);
                         isAuthOK = true;
                         return;
                     } else {
                         dos.writeUTF("Под вашим ником уже кто-то в сети");
+                        LOGGER.log(Level.DEBUG, "Попытка входа под чужим ником: " + authNick);
                     }
                 } else {
                     dos.writeUTF("Не правильный логин или пароль");
+                    LOGGER.log(Level.DEBUG, "Не правильный логин пароль: \"" + clientData[1] + "\" - \"" + clientData[2] + "\"");
                 }
             } else {
                 dos.writeUTF("Не правильная команда авторизации.");
                 dos.writeUTF("Наберите: \"/auth логин пароль\"");
+                LOGGER.log(Level.DEBUG, "Не правильная команда авторизации");
             }
         }
     }
 
     public void sendMessage(String msg) {
         try {
-            dos.writeUTF(msg);
+            if (socket != null && !socket.isClosed()) {
+                dos.writeUTF(msg);
+            }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error("ErrorCHSendMsg", e);
         }
     }
 
@@ -131,8 +165,9 @@ public class ClientHandler implements Runnable {
             dis.close();
             dos.close();
             socket.close();
+            LOGGER.log(Level.INFO, "Успешное закрытие подключения, Ник: " + this.nick);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error("Ошибка закрытия подключения", e);
         }
     }
 
